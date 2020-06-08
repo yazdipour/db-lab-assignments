@@ -1,8 +1,6 @@
-# Lab Training Database Systems SS20
+# Task 1 - Lab Training Database Systems SS20
 
 ## Shahriar Yazdipour [matr. No:62366]
-
-## Task 1
 
 Dentist DB:
 

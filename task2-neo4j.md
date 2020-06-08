@@ -1,8 +1,6 @@
-# Lab Training Database Systems SS20
+# Task 2 - Lab Training Database Systems SS20
 
 ## Shahriar Yazdipour [matr. No:62366]
-
-## Task 2
 
 The data that is used here can be loaded from <https://openflights.org/data.html>.
 
