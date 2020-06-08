@@ -19,6 +19,7 @@ Description: A dentist keeps track of his employees and customers. Therefore, th
 $ docker pull postgres
 $ docker run --name postgres-0 -e POSTGRES_PASSWORD=toor -p 5432:5432 -d postgres
 $ docker exec -it postgres-0 /bin/sh -c bash
+root@f94abb250dd1: su postgres
 postgres@f94abb250dd1:~$ createdb dentist
 postgres@f94abb250dd1:~$ psql dentist
 ```
