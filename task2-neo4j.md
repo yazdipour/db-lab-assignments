@@ -21,77 +21,73 @@ docker run \
 Airport.dat
 
 ```sql
-LOAD CSV FROM "https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat" AS line
+LOAD CSV FROM "https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat" AS row
 CREATE (:Airport{
-    AirportID:line[0],
-    Name:line[1],
-    City:line[2],
-    Country:line[3],
-    IATA:line[4],
-    ICAO:line[5],
-    Latitude:line[6],
-    Longitude:line[7],
-    Altitide:line[8],
-    Timezone:line[9],
-    DST:line[10],
-    TzDB :line[11],
-    Type:line[12],
-    Source:line[13]});
+    AirportID:row[0],
+    Name:row[1],
+    City:row[2],
+    Country:row[3],
+    IATA:row[4],
+    ICAO:row[5],
+    Latitude:row[6],
+    Longitude:row[7],
+    Altitide:row[8],
+    Timezone:row[9],
+    DST:row[10],
+    TzDB :row[11],
+    Type:row[12],
+    Source:row[13]});
 CREATE INDEX ON :Airport(AirportID)
 ```
 
 Airline.dat
 
 ```sql
-LOAD CSV FROM "https://raw.githubusercontent.com/jpatokal/openflights/master/data/airlines.dat" AS line
+LOAD CSV FROM "https://raw.githubusercontent.com/jpatokal/openflights/master/data/airlines.dat" AS row
 CREATE (:Airline{
-    AirlineID:line[0],
-    Name:line[1],
-    Alias:line[2],
-    IATA:line[3],
-    ICAO:line[4],
-    Callsign:line[5],
-    Country:line[6],
-    Active:line[7]});
+    AirlineID:row[0],
+    Name:row[1],
+    Alias:row[2],
+    IATA:row[3],
+    ICAO:row[4],
+    Callsign:row[5],
+    Country:row[6],
+    Active:row[7]});
 CREATE INDEX ON :Airline(AirlineID)
 ```
 
 Route.dat
 
 ```sql
-LOAD CSV FROM "https://raw.githubusercontent.com/jpatokal/openflights/master/data/routes.dat" AS line
+LOAD CSV FROM "https://raw.githubusercontent.com/jpatokal/openflights/master/data/routes.dat" AS row
 CREATE (:Route{
-    Airline:line[0],
-    AirlineID:line[1],
-    SourceAirport:line[2],
-    SourceAirportID:line[3],
-    DestinationAirport:line[4],
-    DestinationAirportID:line[5],
-    Codeshare:line[6],
-    Stops:line[7],
-    Equipment:line[8]});
+    Airline:row[0],
+    AirlineID:row[1],
+    SourceAirport:row[2],
+    SourceAirportID:row[3],
+    DestinationAirport:row[4],
+    DestinationAirportID:row[5],
+    Codeshare:row[6],
+    Stops:row[7],
+    Equipment:row[8]});
 CREATE INDEX ON :Route(AirlineID);
 CREATE INDEX ON :Route(AirportID)
 ```
 
-AirlineID --[flight]-> Route Relation:
+AirlineID--[FLIGHT]-> Route Relation:
 
 ```sql
-MATCH (a:Airline) MATCH (route:Route{AirlineID:a.AirlineID}) MERGE (route)-[:flight]->(a);
+MATCH (a:Airline), (r:Route{AirlineID:a.AirlineID}) MERGE (r)-[:FLIGHT]->(a);
 ```
 
-Airport --[src/dest]-> Route Relation:
+AirportID--[SRC/DEST]-> Route Relation:
 
 ```sql
-MATCH (a:Airport) MATCH (route:Route{SourceAirportID:a.AirportID}) MERGE (route)-[:src]->(a);
-MATCH (a:Airport) MATCH (route:Route{DestinationAirportID:a.AirportID}) MERGE (route)-[:dest]->(a);
+MATCH (a:Airport), (r:Route{SourceAirportID:a.AirportID}) MERGE (a)-[:SRC]->(r);
+MATCH (a:Airport), (r:Route{DestinationAirportID:a.AirportID}) MERGE (r)-[:DEST]->(a);
 ```
 
 b) Answer the eight given queries in Cypher for your task.
-
-=> For the PDF: Add your solution to the queries as well as the result from execution. If the
-result is too big (e.g. a thousand nodes), limit the output to 10 by adding LIMIT 10 to your
-solution.
 
 ### Queries
 
@@ -103,12 +99,12 @@ MATCH (a:Airline) WHERE a.Country = 'Germany' RETURN count(a)
 MATCH (a:Airline{Country:'Germany'}) RETURN count(a)
 ```
 
-![result1](tast2-result1.jpg)
+![result1](https://raw.githubusercontent.com/yazdipour/db-lab-assignments/master/tast2-result1.jpg?token=AB6QV52CSQUM2FQEJX4MQUS65HVEM)
 
 b) How many flights are leaving from Frankfurt am Main Airport?
 
 ```sql
-MATCH (:Route)-[:src]-(:Airport{Name:'Frankfurt am Main Airport'}) RETURN COUNT(*)
+MATCH (:Route)<-[:SRC]-(:Airport{Name:'Frankfurt am Main Airport'}) RETURN COUNT(*)
 
 ╒══════════╕
 │"COUNT(*)"│
@@ -120,7 +116,8 @@ MATCH (:Route)-[:src]-(:Airport{Name:'Frankfurt am Main Airport'}) RETURN COUNT(
 Which of them are heading to an airport in Canada?
 
 ```sql
-MATCH (r:Route)-[:src]-(:Airport{Name:'Frankfurt am Main Airport'}) MATCH (r)-[:dest]-(a:Airport{Country:'Canada'}) RETURN DISTINCT a.Name
+MATCH (r:Route)-[:SRC]-(:Airport{Name:'Frankfurt am Main Airport'})
+MATCH (r)-[:DEST]-(a:Airport{Country:'Canada'}) RETURN DISTINCT a.Name
 
 ╒═════════════════════════════════════════════════════════╕
 │"a.Name"                                                 │
@@ -143,31 +140,32 @@ c) Which airlines are flying **from or to** Frankfurt am Main Airport? We are lo
 names of the airlines.
 
 ```sql
-MATCH (r:Route) WHERE (r)-[:dest]-(:Airport{City:"Frankfurt"}) OR (r)-[:src]-(:Airport{City:"Frankfurt"}) MATCH (r)-[flight]-(a:Airline) RETURN DISTINCT a.Name LIMIT 10
+MATCH (r:Route) WHERE (r)-[:DEST]-(:Airport{City:"Frankfurt"}) OR (r)-[:SRC]-(:Airport{City:"Frankfurt"})
+MATCH (r)-[FLIGHT]-(a:Airline) RETURN DISTINCT a.Name LIMIT 10
 
-╒═══════════════════╕
-│"a.Name"           │
-╞═══════════════════╡
-│"Germanwings"      │
-├───────────────────┤
-│"Air Moldova"      │
-├───────────────────┤
-│"Aegean Airlines"  │
-├───────────────────┤
-│"American Airlines"│
-├───────────────────┤
-│"Air Berlin"       │
-├───────────────────┤
-│"Air Canada"       │
-├───────────────────┤
-│"Air France"       │
-├───────────────────┤
-│"Air Algerie"      │
-├───────────────────┤
-│"Air India Limited"│
-├───────────────────┤
-│"Royal Air Maroc"  │
-└───────────────────┘
+╒═══════════════════════════╕
+│"a.Name"                   │
+╞═══════════════════════════╡
+│"American Airlines"        │
+├───────────────────────────┤
+│"Asiana Airlines"          │
+├───────────────────────────┤
+│"Adria Airways"            │
+├───────────────────────────┤
+│"Air Europa"               │
+├───────────────────────────┤
+│"Aegean Airlines"          │
+├───────────────────────────┤
+│"Aeroflot Russian Airlines"│
+├───────────────────────────┤
+│"Air France"               │
+├───────────────────────────┤
+│"Air Namibia"              │
+├───────────────────────────┤
+│"Azerbaijan Airlines"      │
+├───────────────────────────┤
+│"Air Berlin"               │
+└───────────────────────────┘
 ```
 
 d) How many airlines exist in the dataset?
@@ -197,7 +195,7 @@ MATCH (:Airline{Callsign:''}) WITH COUNT(*) AS c MATCH (a:Airline) RETURN 100.0*
 e) How many airports are more than 150 times destination of a flight?
 
 ```sql
-MATCH (:Route)-[:dest]->(a:Airport) WITH COUNT(*) AS c, a WHERE c>150 RETURN COUNT(a)
+MATCH (:Route)-[:DEST]->(a:Airport) WITH COUNT(*) AS c, a WHERE c>150 RETURN COUNT(a)
 
 ╒═══════════════╕
 │"COUNT(a)"     │
@@ -209,7 +207,7 @@ MATCH (:Route)-[:dest]->(a:Airport) WITH COUNT(*) AS c, a WHERE c>150 RETURN COU
 How many airports are acting as source of flight more than 150 times?
 
 ```sql
-MATCH (:Route)-[:src]->(a:Airport) WITH COUNT(*) AS c, a WHERE c>150 RETURN COUNT(a)
+MATCH (a:Airport)-[:SRC]->(:Route) WITH COUNT(*) AS c, a WHERE c>150 RETURN COUNT(a)
 
 ╒═══════════════╕
 │"COUNT(a)"     │
@@ -223,7 +221,7 @@ Are both numbers equal? **-NO-**
 f) Which airlines are flying over 1000 routes? => names & number of routes they are flying.
 
 ```sql
-MATCH (a:Airline)<-[:flight]-(:Route) WITH COUNT(*) AS count,a WHERE count>1000 RETURN a.Name, count
+MATCH (a:Airline)<-[:FLIGHT]-(:Route) WITH COUNT(*) AS count,a WHERE count>1000 RETURN a.Name, count
 
 ╒═════════════════════════╤═══════╕
 │"a.Name"                 │"count"│
@@ -255,7 +253,8 @@ MATCH (a:Airline)<-[:flight]-(:Route) WITH COUNT(*) AS count,a WHERE count>1000 
 g) How many airports can be reached with a maximum of two flights starting from Frankfurt am Main Airport? Be aware of duplicates with respect to airport names; make sure that each airport is only counted as one!
 
 ```sql
-MATCH (:Airport{Name:'Frankfurt am Main Airport'})-[:src]-(:Route)-[:dest]-(:Airport)-[:src]-(:Route)-[:dest]-(a:Airport) RETURN COUNT(DISTINCT a)
+MATCH (:Airport{Name:'Frankfurt am Main Airport'})-[:SRC]-(:Route)-[:DEST]-(:Airport)-[:SRC]-(:Route)-[:DEST]-(a:Airport)
+ RETURN COUNT(DISTINCT a)
 
 ╒═══════════════════╕
 │"COUNT(DISTINCT a)"│
@@ -268,7 +267,7 @@ h) If the source of a flight is Erfurt Airport, how many intermediate airports a
 What are the names of those airports allowing to travel to and from Erfurt? You can solve it with recursion.
 
 ```sql
-MATCH (:Airport{Name:'Erfurt Airport'})-[:src *0..]-(:Route)-[:dest *0..]-(:Airport{Name:'Erfurt Airport'}) RETURN COUNT(*)
+MATCH (:Airport{Name:'Erfurt Airport'})-[:SRC *1..]-(:Route)-[:DEST *1..]-(:Airport{Name:'Erfurt Airport'}) RETURN COUNT(*)
 
 ╒═══════════════╕
 │"COUNT(*)"     │
@@ -282,7 +281,7 @@ MATCH (:Airport{Name:'Erfurt Airport'})-[:src *0..]-(:Route)-[:dest *0..]-(:Airp
 i) What are the top 10 most crowded airports - sorted?
 
 ```sql
-MATCH (a:Airport)<-[:src]-(r:Route) WITH COUNT(*) AS c , a RETURN a.Name,c ORDER BY c DESC LIMIT 10
+MATCH (a:Airport)-[:SRC]-(:Route) WITH COUNT(*) AS c, a RETURN a.Name,c ORDER BY c DESC LIMIT 10
 
 ╒══════════════════════════════════════════════════╤═══╕
 │"a.Name"                                          │"c"│
